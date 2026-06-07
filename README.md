@@ -1,57 +1,67 @@
-Largest Shared Circuit Across Three Fly Brain Datasets — N = 1094
+# Largest Shared Circuit Across Three Fly Brains
 
-Aim of project:
-This project solves a challenge: find the largest group of neurons that appears in three different fly brain connectome datasets, where the wiring pattern between those neurons is exactly the same in all three. The goal is to make that group as large as possible.
-The answer is 1094 neurons, matched across the BANC, FAFB, and MCNS datasets. The shared wiring pattern turns out to be a directed in-star — 1,093 neurons all feeding into a single central hub neuron. That hub is, independently identified in all three datasets, the same cell type: Am1, a wide-field GABAergic amacrine neuron of the optic lobe.
+**My answer: N = 1094**
 
-Repository layout
-PathWhat it isnetwork.csvThe solution — 3 columns (BANC, FAFB, MCNS) × 1094 rows. Row 0 is the Am1 hub; rows 1–1093 are its inputs. Each row is one matched neuron position across all three datasets.science.mdOne-page scientific summary with figures, biological interpretation, and citations.figures/circuit_network.pngThe in-star "sunburst" — 1,093 input neurons pointing at Am1, colored by neurotransmitter type.figures/adjacency_identical.pngProof figure: the 1094×1094 induced adjacency matrix, shown side-by-side for all three datasets to confirm they are identical.data/fafb_annotations.csvThe 1094 FAFB neurons joined to their cell type, neurotransmitter, and side annotations from the FlyWire-783 reference table.data/fafb_root_ids.txtFAFB root IDs (hub listed first) for loading into Codex or a 3D viewer.data/codex_query.txtA ready-to-paste filter query to pull up all 1094 neurons in Codex.data/neuroglancer_link.txtA direct link to view all 1094 neuron meshes in the FlyWire-783 3D viewer.src/All source code (see Reproduce section below).
-How it works
-The core problem. The five connectome datasets share no neuron IDs — they come from different animals and hemispheres. Finding a matching circuit across them is formally equivalent to the maximum common induced subgraph problem, which is NP-hard and completely intractable at connectome scale (100,000+ neurons, millions of edges). This project sidesteps that entirely.
-The key insight. Instead of searching for an arbitrary matching circuit, we target a structural motif where all nodes are interchangeable by definition: a clean directed star. In a clean in-star, every leaf neuron is equivalent to every other, so any two clean in-stars of the same size N are automatically isomorphic — no node-by-node alignment search needed. The correspondence is guaranteed by construction.
-What "clean in-star" means. A clean in-star of size N has one hub and N?1 leaves, where:
-* every leaf sends a connection to the hub,
-* the hub sends no connection back to any leaf, and
-* no leaf connects to any other leaf (the leaves form an independent set).
-The resulting induced adjacency matrix is exactly one filled column (all inputs pointing at the hub) and zeros everywhere else. Two clean in-stars of the same size always produce this identical matrix.
+## Aim of project
 
-Pipeline (four steps)
-Step 1 — Clean (src/load_and_summarize.py)
-Load each dataset's edge list as an unweighted directed graph, drop self-loops, and remove duplicate edges.
-Step 2 — Search (src/star_search.py)
-For each dataset, look at the highest in-degree hub candidates and collect their "pure" presynaptic partners — neurons that connect to the hub but receive no connection back. Then find the largest independent set among those partners (meaning no two of them connect to each other). Finding the maximum independent set is itself NP-hard, so we use a randomized greedy heuristic: repeatedly pick the lowest-degree remaining neuron, remove its neighbors from consideration, and keep the best result across multiple random restarts. The matched N for the trio is the minimum star size across all three datasets — here BANC's Am1 hub, with 1,723 clean inputs, is the binding constraint, giving N = 1094.
-Step 3 — Validate (src/validate_star.py)
-This is the single source of truth. Order the neurons hub-first, rebuild the N×N adjacency matrix from the original raw edge lists for each dataset independently, and confirm all four of the following:
-1. All three matrices are element-wise identical.
-2. The matrix is exactly a star (one filled column, zeros elsewhere).
-3. The leaves form an independent set with no reverse edges to the hub.
-4. The graph is weakly connected.
-Only if all four checks pass is the solution written to disk.
-Step 4 — Outputs (src/make_1094_deliverables.py)
-Generate the figures, annotation table, root ID list, Codex query, and Neuroglancer viewer link.
+Finding the largest group of neurons that appears in three different fly brain connectomes where the wiring pattern is the same. My answer is 1094 neurons which are across the BANC, FAFB, and MCNS datasets. The shared wiring pattern was a directed in-star with 1,093 neurons all feeding into a single central hub neuron. That hub is of the same cell type across the datasets and is Am1, a neuron of the optic lobe.
 
-Assumptions
-* Isomorphism is exact. Edges are treated as binary (present or absent); synapse counts and weights are ignored. Direction is preserved, and only edges induced among the N selected neurons are counted.
-* Matching is by structure, not identity. No assumption is made that any neuron in one dataset corresponds to a specific neuron in another. The star motif makes that unnecessary — leaves are interchangeable by definition.
-* Connectivity is required. The edgeless subgraph would trivially maximize N but is biologically meaningless, so solutions must be weakly connected.
-* The search is heuristic, not provably optimal. The independent set step uses a greedy heuristic, so N = 1094 is a strong lower bound — not a guaranteed maximum. The solution itself is fully certified by the matrix-equality test; only its maximality is approximate.
-* Three of five datasets. The best trio is BANC, FAFB, and MCNS. The MANC and MAOL datasets were not in the winning group.
-* Annotations are external. Cell type, neurotransmitter, and side labels come from public reference tables and are not used during the search — they only help interpret the result afterward.
+## Repository layout Path
 
-Reproduce
-Requires Python 3 with numpy, pandas, python-igraph, and matplotlib.
-# 1. Download the five edge lists into ../data/ from:
-#    https://storage.googleapis.com/flywire-data/internship_projects/edge_lists/
-# 2. Clean and cache:        python src/load_and_summarize.py
-# 3. Search for stars:       python src/star_search.py
-# 4. Validate and write CSV: python src/validate_star.py solution.csv in banc fafb mcns
-# 5. Figures and 3D assets:  python src/make_1094_deliverables.py
-To regenerate just the two figures from files already in this repo (no external edge lists needed):
-python src/regenerate_figures.py
+1. **Network.csv**: There are 3 columns which represent BANC, FAFB, MCNS and 1094 rows. Row 0 is the Am1 hub and the rows from 1 to 1093 are its respective inputs or leaves. Each row is one matched neuron position across all three datasets.
+2. **Science.md**: This is a one page scientific summary with figures, biological interpretation, and citations.
+3. **Figures/circuit_network.png**: The in-star (sunburst-like) 1,093 input neurons pointing at Am1, colored by neurotransmitter type represent the structure of the network.
+4. **Figures/adjacency_identical.png**: The 1094-by-1094 induced adjacency matrix is shown side-by-side for all three datasets to confirm they are identical in shape.
+5. **Data/fafb_annotations.csv**: The 1094 FAFB neurons joined to their cell type, neurotransmitter, and side annotations from the FlyWire-783 reference table.
+6. **Data/fafb_root_ids.txt**: FAFB root IDs are listed (with hubs first) to load data into Codex or a 3D viewer for a more realistic representation.
+7. **Data/codex_query.txt**: A ready-to-paste filter query to pull up all 1094 neurons in Codex website.
+8. **Data/neuroglancer_link.txt**: A direct link to view all 1094 neuron meshes in the FlyWire-783 3D viewer. src
 
-Why a star and not something denser?
-Two valid solutions satisfy the isomorphism constraint:
-* In-star, N = 1094 (this repo): connected, maximizes N, and maps onto a real conserved circuit — convergence onto the Am1 wide-field amacrine cell across three independent datasets.
-* Reciprocal clique, N = 38: much denser (every pair of neurons wired in both directions, density = 1.0), corresponding to a recurrent antennal-lobe local-neuron module.
-The star wins on raw N; the clique wins on density and biological richness. Both are rigorously validated by the same matrix-equality test. See science.md for the full biological interpretation.
+## How it works
 
+The five connectome datasets share no neuron IDs; they aren't from the same fly. Finding a matching circuit across them is NP-hard and completely intractable at connectome scale due to there being a huge amount (100,000+) neurons and edge combination. Our solution sidesteps this brutal process. Instead of searching for a matching circuit, we target a motif where all the nodes are interchangeable: a clean directed star. In a clean in-star, every leaf neuron is essentially equivalent to every other in the star. Thus, any two clean in-stars of the same size (N) are automatically isomorphic, so no node-by-node alignment search is needed.
+
+**Additionally info:** A clean in-star of size N has one hub and N-1 leaves, where:
+
+- every leaf sends a connection to the hub
+- the hub sends no connection back to any leaf
+- no leaf connects to any other leaf so the leaves form an independent set
+- The resulting induced adjacency matrix is exactly one filled column and zeros everywhere else. So it proves that all the leaves only connect back to the hub.
+
+## Process
+
+1. Clean and load each dataset's edge list as a directed graph (weights do not matter), remove self-loops, and remove duplicate edges.
+2. For each dataset, look at the highest in-degree hub candidates and collect their "pure" presynaptic partners. This is because these are the neurons that connect to the hub but receive no connection back.
+3. Then find the largest independent set among those partners. Since this is NP hard, we use a randomized greedy approach which repeatedly picks the lowest-degree remaining neuron, removes its neighbors from consideration, and keeps the best result across multiple random restarts.
+4. The matched N for the trio is the minimum star size across all three datasets. In this example, BANC's Am1 hub, with 1,723 clean inputs, is the binding constraint. So N is maximized at 1094.
+5. Validate: Order the neurons hub-first, rebuild the NxN adjacency matrix from the original raw edge lists for each dataset independently
+6. Confirm the four following conditions:
+   1. All three matrices are element-wise identical
+   2. The matrix has only 1 column filled so it is a star.
+   3. The leaves form an independent set with no reverse edges to the hub
+   4. The graph is weakly connected. Only if all four checks pass is the solution written to disk.
+7. Outputs: Generate the figures, annotation table, root ID list, Codex query, and Neuroglancer viewer link.
+
+## Assumptions
+
+- Connections are either present or not. The strength of the connection (essentially how many synapses) is ignored. Direction matters between connections. Only connections between the chosen neurons count, so connections to neurons outside the group are ignored.
+- Neurons don't need to be the same neuron across datasets. The match is based purely on wiring pattern, not identity. There's no assumption that a neuron in BANC is the same cell as another neuron in FAFB. For a star this doesn't matter anyway since every leaf plays the same role. Therefore, any leaf can pair with any other leaf.
+- The circuit must be connected. A group of neurons with no connections between them would satisfy the project requirements, but it's biologically useless.
+- The search finds a very good answer, but it's not guaranteed that it's the perfect answer. The step that finds the largest group of unconnected leaves uses a specific strategy rather than checking every possibility. So N = 1094 is a solid result but might not be the absolute maximum theoretically possible. However, we do know that it's a valid possibility because it's been verified to be real across the 3 datasets.
+- The best three datasets are BANC, FAFB, and MCNS. This is because the search was run across all five datasets and MANC and MAOL didn't produce the largest result.
+- Biology labels are only significant after creating the set. Cell type, neurotransmitter, and side information play no role in finding the circuit and are obtained using public tables of knowledge.
+
+## Instructions to reproduce results
+
+**NOTE:** Before running anything, make sure you have Python 3 installed with the following packages: numpy, pandas, python-igraph, and matplotlib.
+
+1. Download all five edge list CSV files into the `../data/` folder from:
+   https://storage.googleapis.com/flywire-data/internship_projects/edge_lists/
+2. Clean the data and compute dataset summaries. Run: `python src/load_and_summarize.py`
+3. Search for the largest star in each dataset. Run: `python src/star_search.py`
+4. Validate the match and write the solution CSV. Run: `python src/validate_star.py solution.csv in banc fafb mcns`
+5. Generate all figures and 3D viewer assets. Run: `python src/make_1094_deliverables.py`
+
+To regenerate the figures only. Run: `python src/regenerate_figures.py`
+
+- Use this shortcut if you only want to check the visual outputs and don't want to download and process the full edge list files. This works entirely from files already saved in the repository.
