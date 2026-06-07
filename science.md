@@ -1,4 +1,4 @@
-# Convergence onto the Am1 wide-field amacrine cell — a conserved visual gain-control hub
+# Convergence onto the Am1 wide-field amacrine cell
 
 **FlyWire qualification challenge — Research note (dataset: FAFB v783)**
 
